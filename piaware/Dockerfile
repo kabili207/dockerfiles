@@ -3,6 +3,8 @@ MAINTAINER Andrew Nagle <kabili@zyrenth.com>
 
 ENV VERSION=3.5.0
 
+COPY disable-cert-validation.patch /tmp
+
 RUN apk add --no-cache libusb ncurses git build-base libusb-dev ncurses-dev \
         tcl-dev tcl tclx tcl-tls autoconf && \
     git clone -b v1.6 https://github.com/flightaware/tcllauncher /tmp/tcllauncher && \
@@ -17,12 +19,15 @@ RUN apk add --no-cache libusb ncurses git build-base libusb-dev ncurses-dev \
     make && make install && \
     git clone -b v${VERSION} --single-branch https://github.com/flightaware/piaware.git /tmp/piaware && \
     cd /tmp/piaware && \
+    patch -p1 < /tmp/disable-cert-validation.patch && \
     make && make install && \
+    cp package/ca/*.pem /etc/ssl && \
+    update-ca-certificates && \
     git clone https://github.com/flightaware/dump1090.git /tmp/dump1090 && \
     cd /tmp/dump1090 && \
     make faup1090 BLADERF=no RTLSDR=no && \
     cp -a faup1090 /usr/lib/piaware/helpers/ && \
-    cd / && rm -r /tmp/piaware /tmp/tcllauncher /tmp/tcllib /tmp/dump1090 && \
+    cd / && rm -r /tmp/piaware /tmp/tcllauncher /tmp/tcllib /tmp/dump1090 /tmp/disable-cert-validation.patch && \
     apk del git build-base autoconf tcl-dev ncurses-dev
 
 EXPOSE 30105
