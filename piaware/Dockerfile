@@ -1,0 +1,38 @@
+FROM alpine:latest
+MAINTAINER Andrew Nagle <kabili@zyrenth.com>
+
+ENV VERSION=3.5.0
+
+RUN apk add --no-cache libusb ncurses git build-base libusb-dev ncurses-dev \
+        tcl-dev tcl tclx tcl-tls autoconf && \
+    git clone -b v1.6 https://github.com/flightaware/tcllauncher /tmp/tcllauncher && \
+    cd /tmp/tcllauncher && \
+    autoconf && \
+    ./configure --prefix=/opt/tcl && \
+    make && make install && \
+    git clone -b tcllib_1_18 https://github.com/tcltk/tcllib /tmp/tcllib && \
+    cd /tmp/tcllib && \
+    autoconf && \
+    ./configure && \
+    make && make install && \
+    git clone -b v${VERSION} --single-branch https://github.com/flightaware/piaware.git /tmp/piaware && \
+    cd /tmp/piaware && \
+    make && make install && \
+    git clone https://github.com/flightaware/dump1090.git /tmp/dump1090 && \
+    cd /tmp/dump1090 && \
+    make faup1090 BLADERF=no RTLSDR=no && \
+    cp -a faup1090 /usr/lib/piaware/helpers/ && \
+    cd / && rm -r /tmp/piaware /tmp/tcllauncher /tmp/tcllib /tmp/dump1090 && \
+    apk del git build-base autoconf tcl-dev ncurses-dev
+
+EXPOSE 30105
+
+ENV USER=
+ENV PASSWORD=
+ENV FEEDID=
+ENV GPSD=
+
+COPY piaware.conf /etc
+COPY start.sh /
+
+ENTRYPOINT ["/start.sh"]
